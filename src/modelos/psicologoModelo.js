@@ -1,72 +1,73 @@
 /**
- * Modelo de acceso a datos para la tabla medicos.
+ * Modelo de acceso a datos para la tabla psicologos.
  * Incluye la relación con la tabla consultorios.
  */
 
 const { grupoConexiones } = require('../configuracion/conexion');
 
 const CAMPOS = `
-  m.id_medico,
-  m.nombre,
-  m.apellido,
-  m.especialidad,
-  m.cedula_profesional,
-  m.telefono,
-  m.correo,
-  m.id_consultorio,
+  p.id_psicologo,
+  p.nombre,
+  p.apellido,
+  p.especialidad,
+  p.cedula_profesional,
+  p.telefono,
+  p.correo,
+  p.enfoque_terapeutico,
+  p.id_consultorio,
   c.nombre AS consultorio,
   c.ubicacion AS ubicacion_consultorio,
-  m.fecha_registro
+  p.fecha_registro
 `;
 
 const CONSULTA_BASE = `
   SELECT ${CAMPOS}
-  FROM medicos m
-  LEFT JOIN consultorios c ON c.id_consultorio = m.id_consultorio
+  FROM psicologos p
+  LEFT JOIN consultorios c ON c.id_consultorio = p.id_consultorio
 `;
 
 /**
- * Obtiene todos los médicos registrados.
- * @returns {Promise<object[]>} Lista de médicos.
+ * Obtiene todos los psicólogos registrados.
+ * @returns {Promise<object[]>} Lista de psicólogos.
  */
 const listarTodos = async () => {
   const [filas] = await grupoConexiones.query(
-    `${CONSULTA_BASE} ORDER BY m.apellido ASC, m.nombre ASC`
+    `${CONSULTA_BASE} ORDER BY p.apellido ASC, p.nombre ASC`
   );
 
   return filas;
 };
 
 /**
- * Busca un médico por su identificador.
- * @param {number} idMedico Identificador del médico.
- * @returns {Promise<object|null>} Médico encontrado o null.
+ * Busca un psicólogo por su identificador.
+ * @param {number} idPsicologo Identificador del psicólogo.
+ * @returns {Promise<object|null>} Psicólogo encontrado o null.
  */
-const obtenerPorId = async (idMedico) => {
+const obtenerPorId = async (idPsicologo) => {
   const [filas] = await grupoConexiones.execute(
-    `${CONSULTA_BASE} WHERE m.id_medico = ? LIMIT 1`,
-    [idMedico]
+    `${CONSULTA_BASE} WHERE p.id_psicologo = ? LIMIT 1`,
+    [idPsicologo]
   );
 
   return filas[0] || null;
 };
 
 /**
- * Busca un médico por cédula profesional.
+ * Busca un psicólogo por cédula profesional.
  * @param {string} cedula Cédula profesional.
  * @param {number|null} idExcluir Identificador que se debe excluir al actualizar.
  * @returns {Promise<object|null>} Coincidencia encontrada o null.
  */
 const buscarPorCedula = async (cedula, idExcluir = null) => {
   let sql = `
-    SELECT id_medico, cedula_profesional
-    FROM medicos
+    SELECT id_psicologo, cedula_profesional
+    FROM psicologos
     WHERE cedula_profesional = ?
   `;
   const parametros = [cedula];
 
   if (idExcluir !== null) {
-    sql += ' AND id_medico <> ?';
+    sql += ' AND id_psicologo <> ?';
     parametros.push(idExcluir);
   }
 
@@ -77,21 +78,21 @@ const buscarPorCedula = async (cedula, idExcluir = null) => {
 };
 
 /**
- * Busca un médico por correo electrónico.
+ * Busca un psicólogo por correo electrónico.
  * @param {string} correo Correo electrónico.
  * @param {number|null} idExcluir Identificador que se debe excluir al actualizar.
  * @returns {Promise<object|null>} Coincidencia encontrada o null.
  */
 const buscarPorCorreo = async (correo, idExcluir = null) => {
   let sql = `
-    SELECT id_medico, correo
-    FROM medicos
+    SELECT id_psicologo, correo
+    FROM psicologos
     WHERE correo = ?
   `;
   const parametros = [correo];
 
   if (idExcluir !== null) {
-    sql += ' AND id_medico <> ?';
+    sql += ' AND id_psicologo <> ?';
     parametros.push(idExcluir);
   }
 
@@ -102,15 +103,16 @@ const buscarPorCorreo = async (correo, idExcluir = null) => {
 };
 
 /**
- * Registra un nuevo médico.
+ * Registra un nuevo psicólogo.
  * @param {object} datos Datos previamente validados por el controlador.
- * @returns {Promise<object>} Médico creado.
+ * @returns {Promise<object>} Psicólogo creado.
  */
 const crear = async (datos) => {
   const [resultado] = await grupoConexiones.execute(
-    `INSERT INTO medicos
-      (nombre, apellido, especialidad, cedula_profesional, telefono, correo, id_consultorio)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO psicologos
+      (nombre, apellido, especialidad, cedula_profesional, telefono, correo,
+       enfoque_terapeutico, id_consultorio)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       datos.nombre,
       datos.apellido,
@@ -118,6 +120,7 @@ const crear = async (datos) => {
       datos.cedula_profesional,
       datos.telefono,
       datos.correo,
+      datos.enfoque_terapeutico,
       datos.id_consultorio
     ]
   );
@@ -126,22 +129,23 @@ const crear = async (datos) => {
 };
 
 /**
- * Actualiza todos los datos de un médico.
- * @param {number} idMedico Identificador del médico.
+ * Actualiza todos los datos de un psicólogo.
+ * @param {number} idPsicologo Identificador del psicólogo.
  * @param {object} datos Datos previamente validados.
  * @returns {Promise<number>} Cantidad de filas afectadas.
  */
-const actualizar = async (idMedico, datos) => {
+const actualizar = async (idPsicologo, datos) => {
   const [resultado] = await grupoConexiones.execute(
-    `UPDATE medicos
+    `UPDATE psicologos
      SET nombre = ?,
          apellido = ?,
          especialidad = ?,
          cedula_profesional = ?,
          telefono = ?,
          correo = ?,
+         enfoque_terapeutico = ?,
          id_consultorio = ?
-     WHERE id_medico = ?`,
+     WHERE id_psicologo = ?`,
     [
       datos.nombre,
       datos.apellido,
@@ -149,8 +153,9 @@ const actualizar = async (idMedico, datos) => {
       datos.cedula_profesional,
       datos.telefono,
       datos.correo,
+      datos.enfoque_terapeutico,
       datos.id_consultorio,
-      idMedico
+      idPsicologo
     ]
   );
 
@@ -158,14 +163,14 @@ const actualizar = async (idMedico, datos) => {
 };
 
 /**
- * Elimina un médico por su identificador.
- * @param {number} idMedico Identificador del médico.
+ * Elimina un psicólogo por su identificador.
+ * @param {number} idPsicologo Identificador del psicólogo.
  * @returns {Promise<number>} Cantidad de filas eliminadas.
  */
-const eliminar = async (idMedico) => {
+const eliminar = async (idPsicologo) => {
   const [resultado] = await grupoConexiones.execute(
-    'DELETE FROM medicos WHERE id_medico = ?',
-    [idMedico]
+    'DELETE FROM psicologos WHERE id_psicologo = ?',
+    [idPsicologo]
   );
 
   return resultado.affectedRows;

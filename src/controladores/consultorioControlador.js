@@ -226,7 +226,7 @@ const eliminarConsultorio = async (req, res) => {
       return res.status(400).json({
         exito: false,
         mensaje:
-          'No se puede eliminar el consultorio porque tiene médicos o citas asociadas.'
+          'No se puede eliminar el consultorio porque tiene psicólogos o citas asociadas.'
       });
     }
 

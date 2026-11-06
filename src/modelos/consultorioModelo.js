@@ -11,7 +11,7 @@ const CAMPOS = `
   co.telefono,
   co.estado,
   co.fecha_registro,
-  (SELECT COUNT(*) FROM medicos m WHERE m.id_consultorio = co.id_consultorio) AS total_medicos
+  (SELECT COUNT(*) FROM psicologos p WHERE p.id_consultorio = co.id_consultorio) AS total_psicologos
 `;
 
 const CONSULTA_BASE = `

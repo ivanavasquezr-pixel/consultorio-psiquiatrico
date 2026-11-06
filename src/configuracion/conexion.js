@@ -46,7 +46,7 @@ const construirConfiguracion = () => {
       port: Number(process.env.DB_PORT) || 3306,
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'consultorio_psiquiatrico'
+      database: process.env.DB_NAME || 'consultorio_psicologico'
     };
   }
 
@@ -89,7 +89,7 @@ const construirConfiguracion = () => {
     port: 3306,
     user: 'root',
     password: '',
-    database: 'consultorio_psiquiatrico'
+    database: 'consultorio_psicologico'
   };
 };
 

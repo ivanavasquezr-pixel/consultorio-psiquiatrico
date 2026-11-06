@@ -1,6 +1,6 @@
 /**
  * Modelo de acceso a datos para la tabla citas.
- * Relaciona pacientes, médicos y consultorios mediante llaves foráneas.
+ * Relaciona pacientes, psicólogos y consultorios mediante llaves foráneas.
  */
 
 const { grupoConexiones } = require('../configuracion/conexion');
@@ -9,13 +9,15 @@ const CAMPOS = `
   c.id_cita,
   c.id_paciente,
   CONCAT(p.nombre, ' ', p.apellido) AS paciente,
-  c.id_medico,
-  CONCAT(m.nombre, ' ', m.apellido) AS medico,
-  m.especialidad,
+  c.id_psicologo,
+  CONCAT(ps.nombre, ' ', ps.apellido) AS psicologo,
+  ps.especialidad,
+  ps.enfoque_terapeutico,
   c.id_consultorio,
   co.nombre AS consultorio,
   c.fecha_cita,
   c.hora_cita,
+  c.modalidad,
   c.motivo,
   c.estado,
   c.fecha_registro
@@ -25,7 +27,7 @@ const CONSULTA_BASE = `
   SELECT ${CAMPOS}
   FROM citas c
   INNER JOIN pacientes p ON p.id_paciente = c.id_paciente
-  INNER JOIN medicos m ON m.id_medico = c.id_medico
+  INNER JOIN psicologos ps ON ps.id_psicologo = c.id_psicologo
   INNER JOIN consultorios co ON co.id_consultorio = c.id_consultorio
 `;
 
@@ -72,26 +74,26 @@ const listarPorPaciente = async (idPaciente) => {
 };
 
 /**
- * Obtiene las citas de un médico.
- * @param {number} idMedico Identificador del médico.
- * @returns {Promise<object[]>} Citas del médico.
+ * Obtiene las citas de un psicólogo.
+ * @param {number} idPsicologo Identificador del psicólogo.
+ * @returns {Promise<object[]>} Citas del psicólogo.
  */
-const listarPorMedico = async (idMedico) => {
+const listarPorPsicologo = async (idPsicologo) => {
   const [filas] = await grupoConexiones.execute(
     `${CONSULTA_BASE}
-     WHERE c.id_medico = ?
+     WHERE c.id_psicologo = ?
      ORDER BY c.fecha_cita DESC, c.hora_cita DESC`,
-    [idMedico]
+    [idPsicologo]
   );
 
   return filas;
 };
 
 /**
- * Busca una cita activa que coincida en fecha y hora con el médico o el paciente.
+ * Busca una cita activa que coincida en fecha y hora con el psicólogo o el paciente.
  * Las citas canceladas no se consideran para permitir reutilizar el horario.
  * @param {object} datos Datos de búsqueda.
- * @param {number} datos.idMedico Identificador del médico.
+ * @param {number} datos.idPsicologo Identificador del psicólogo.
  * @param {number} datos.idPaciente Identificador del paciente.
  * @param {string} datos.fechaCita Fecha de la cita.
  * @param {string} datos.horaCita Hora normalizada de la cita.
@@ -99,21 +101,21 @@ const listarPorMedico = async (idMedico) => {
  * @returns {Promise<object|null>} Cita en conflicto o null.
  */
 const buscarConflictoHorario = async ({
-  idMedico,
+  idPsicologo,
   idPaciente,
   fechaCita,
   horaCita,
   idExcluir = null
 }) => {
   let sql = `
-    SELECT id_cita, id_medico, id_paciente, fecha_cita, hora_cita, estado
+    SELECT id_cita, id_psicologo, id_paciente, fecha_cita, hora_cita, estado
     FROM citas
     WHERE fecha_cita = ?
       AND hora_cita = ?
       AND estado <> 'Cancelada'
-      AND (id_medico = ? OR id_paciente = ?)
+      AND (id_psicologo = ? OR id_paciente = ?)
   `;
-  const parametros = [fechaCita, horaCita, idMedico, idPaciente];
+  const parametros = [fechaCita, horaCita, idPsicologo, idPaciente];
 
   if (idExcluir !== null) {
     sql += ' AND id_cita <> ?';
@@ -134,14 +136,16 @@ const buscarConflictoHorario = async ({
 const crear = async (datos) => {
   const [resultado] = await grupoConexiones.execute(
     `INSERT INTO citas
-      (id_paciente, id_medico, id_consultorio, fecha_cita, hora_cita, motivo, estado)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (id_paciente, id_psicologo, id_consultorio, fecha_cita, hora_cita,
+       modalidad, motivo, estado)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       datos.id_paciente,
-      datos.id_medico,
+      datos.id_psicologo,
       datos.id_consultorio,
       datos.fecha_cita,
       datos.hora_cita,
+      datos.modalidad,
       datos.motivo,
       datos.estado
     ]
@@ -160,19 +164,21 @@ const actualizar = async (idCita, datos) => {
   const [resultado] = await grupoConexiones.execute(
     `UPDATE citas
      SET id_paciente = ?,
-         id_medico = ?,
+         id_psicologo = ?,
          id_consultorio = ?,
          fecha_cita = ?,
          hora_cita = ?,
+         modalidad = ?,
          motivo = ?,
          estado = ?
      WHERE id_cita = ?`,
     [
       datos.id_paciente,
-      datos.id_medico,
+      datos.id_psicologo,
       datos.id_consultorio,
       datos.fecha_cita,
       datos.hora_cita,
+      datos.modalidad,
       datos.motivo,
       datos.estado,
       idCita
@@ -200,7 +206,7 @@ module.exports = {
   listarTodos,
   obtenerPorId,
   listarPorPaciente,
-  listarPorMedico,
+  listarPorPsicologo,
   buscarConflictoHorario,
   crear,
   actualizar,

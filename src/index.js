@@ -1,5 +1,5 @@
 /**
- * Punto de entrada de la API REST del Consultorio Psiquiátrico.
+ * Punto de entrada de la API REST del Consultorio Psicológico.
  * Configura Express, los middlewares globales, las rutas y el servidor.
  */
 
@@ -10,7 +10,7 @@ const cors = require('cors');
 const { grupoConexiones, verificarConexion, cerrarConexion } = require('./configuracion/conexion');
 
 const pacienteRutas = require('./rutas/pacienteRutas');
-const medicoRutas = require('./rutas/medicoRutas');
+const psicologoRutas = require('./rutas/psicologoRutas');
 const consultorioRutas = require('./rutas/consultorioRutas');
 const citaRutas = require('./rutas/citaRutas');
 const historialRutas = require('./rutas/historialRutas');
@@ -43,8 +43,8 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.get('/', (req, res) => {
   return res.status(200).json({
     exito: true,
-    mensaje: 'API REST del Consultorio Psiquiátrico.',
-    version: '1.0.0',
+    mensaje: 'API REST del Consultorio Psicológico.',
+    version: '2.0.0',
     documentacion: 'Consulta el archivo README.md para ver todos los endpoints.',
     estado: 'Servicio activo.'
   });
@@ -67,7 +67,7 @@ app.get('/api/salud', async (req, res) => {
     exito: true,
     mensaje: 'Servicio activo.',
     datos: {
-      servicio: 'API Consultorio Psiquiátrico',
+      servicio: 'API Consultorio Psicológico',
       estado: 'activo',
       baseDatos: estadoBaseDatos,
       fecha: new Date().toISOString()
@@ -77,7 +77,7 @@ app.get('/api/salud', async (req, res) => {
 
 // Registro de las rutas REST bajo el prefijo /api.
 app.use('/api/pacientes', pacienteRutas);
-app.use('/api/medicos', medicoRutas);
+app.use('/api/psicologos', psicologoRutas);
 app.use('/api/consultorios', consultorioRutas);
 app.use('/api/citas', citaRutas);
 app.use('/api/historial', historialRutas);

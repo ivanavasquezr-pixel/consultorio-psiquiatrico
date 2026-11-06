@@ -8,7 +8,7 @@ const {
   listarCitas,
   obtenerCita,
   listarCitasPorPaciente,
-  listarCitasPorMedico,
+  listarCitasPorPsicologo,
   crearCita,
   actualizarCita,
   eliminarCita
@@ -18,7 +18,7 @@ const enrutador = express.Router();
 
 // Rutas específicas (deben declararse antes de /:id).
 enrutador.get('/paciente/:idPaciente', listarCitasPorPaciente);
-enrutador.get('/medico/:idMedico', listarCitasPorMedico);
+enrutador.get('/psicologo/:idPsicologo', listarCitasPorPsicologo);
 
 enrutador.get('/', listarCitas);
 enrutador.get('/:id', obtenerCita);

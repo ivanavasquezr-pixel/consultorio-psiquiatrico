@@ -1,6 +1,7 @@
 /**
  * Modelo de acceso a datos para la tabla historial_clinico.
- * Cada registro está relacionado con una cita.
+ * Cada registro está relacionado con una cita y con el psicólogo
+ * que atendió al paciente.
  */
 
 const { grupoConexiones } = require('../configuracion/conexion');
@@ -12,9 +13,10 @@ const CAMPOS = `
   c.hora_cita,
   c.id_paciente,
   CONCAT(p.nombre, ' ', p.apellido) AS paciente,
-  c.id_medico,
-  CONCAT(m.nombre, ' ', m.apellido) AS medico,
-  m.especialidad,
+  c.id_psicologo,
+  CONCAT(ps.nombre, ' ', ps.apellido) AS psicologo,
+  ps.especialidad,
+  ps.enfoque_terapeutico,
   h.diagnostico,
   h.tratamiento,
   h.notas,
@@ -26,7 +28,7 @@ const CONSULTA_BASE = `
   FROM historial_clinico h
   INNER JOIN citas c ON c.id_cita = h.id_cita
   INNER JOIN pacientes p ON p.id_paciente = c.id_paciente
-  INNER JOIN medicos m ON m.id_medico = c.id_medico
+  INNER JOIN psicologos ps ON ps.id_psicologo = c.id_psicologo
 `;
 
 /**

@@ -1,8 +1,8 @@
 /**
- * Controlador de médicos: validación de datos y respuestas HTTP.
+ * Controlador de psicólogos: validación de datos y respuestas HTTP.
  */
 
-const medicoModelo = require('../modelos/medicoModelo');
+const psicologoModelo = require('../modelos/psicologoModelo');
 const consultorioModelo = require('../modelos/consultorioModelo');
 const {
   esEnteroPositivo,
@@ -18,11 +18,11 @@ const {
 } = require('../utilidades/respuestas');
 
 /**
- * Valida y normaliza los datos recibidos para un médico.
+ * Valida y normaliza los datos recibidos para un psicólogo.
  * @param {object} cuerpo Cuerpo de la solicitud.
  * @returns {{errores: string[], datos: object}} Resultado de la validación.
  */
-const validarDatosMedico = (cuerpo = {}) => {
+const validarDatosPsicologo = (cuerpo = {}) => {
   const errores = [];
   const idConsultorioTexto = textoOpcional(cuerpo.id_consultorio);
   const datos = {
@@ -32,6 +32,7 @@ const validarDatosMedico = (cuerpo = {}) => {
     cedula_profesional: limpiarTexto(cuerpo.cedula_profesional),
     telefono: textoOpcional(cuerpo.telefono),
     correo: limpiarTexto(cuerpo.correo).toLowerCase(),
+    enfoque_terapeutico: textoOpcional(cuerpo.enfoque_terapeutico),
     id_consultorio: idConsultorioTexto === null ? null : Number(idConsultorioTexto)
   };
 
@@ -73,6 +74,10 @@ const validarDatosMedico = (cuerpo = {}) => {
     );
   }
 
+  if (datos.enfoque_terapeutico && datos.enfoque_terapeutico.length > 100) {
+    errores.push('El enfoque terapéutico no puede superar los 100 caracteres.');
+  }
+
   if (idConsultorioTexto !== null && !esEnteroPositivo(idConsultorioTexto)) {
     errores.push(
       'El identificador del consultorio debe ser un número entero positivo.'
@@ -84,8 +89,8 @@ const validarDatosMedico = (cuerpo = {}) => {
 
 /**
  * Verifica que el consultorio exista y que la cédula y el correo no estén repetidos.
- * @param {object} datos Datos normalizados del médico.
- * @param {number|null} idExcluir Médico que se excluye durante una actualización.
+ * @param {object} datos Datos normalizados del psicólogo.
+ * @param {number|null} idExcluir Psicólogo que se excluye durante una actualización.
  * @returns {Promise<string[]>} Lista de errores encontrados.
  */
 const validarRelacionesYDuplicados = async (datos, idExcluir = null) => {
@@ -96,10 +101,10 @@ const validarRelacionesYDuplicados = async (datos, idExcluir = null) => {
       ? consultorioModelo.obtenerPorId(datos.id_consultorio)
       : Promise.resolve(null),
     datos.cedula_profesional
-      ? medicoModelo.buscarPorCedula(datos.cedula_profesional, idExcluir)
+      ? psicologoModelo.buscarPorCedula(datos.cedula_profesional, idExcluir)
       : Promise.resolve(null),
     datos.correo
-      ? medicoModelo.buscarPorCorreo(datos.correo, idExcluir)
+      ? psicologoModelo.buscarPorCorreo(datos.correo, idExcluir)
       : Promise.resolve(null)
   ]);
 
@@ -108,68 +113,68 @@ const validarRelacionesYDuplicados = async (datos, idExcluir = null) => {
   }
 
   if (cedulaExistente) {
-    errores.push('La cédula profesional ya está registrada para otro médico.');
+    errores.push('La cédula profesional ya está registrada para otro psicólogo.');
   }
 
   if (correoExistente) {
-    errores.push('El correo electrónico ya está registrado para otro médico.');
+    errores.push('El correo electrónico ya está registrado para otro psicólogo.');
   }
 
   return errores;
 };
 
 /**
- * Lista todos los médicos.
- * GET /api/medicos
+ * Lista todos los psicólogos.
+ * GET /api/psicologos
  */
-const listarMedicos = async (req, res) => {
+const listarPsicologos = async (req, res) => {
   try {
-    const medicos = await medicoModelo.listarTodos();
+    const psicologos = await psicologoModelo.listarTodos();
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Médicos obtenidos correctamente.',
-      total: medicos.length,
-      datos: medicos
+      mensaje: 'Psicólogos obtenidos correctamente.',
+      total: psicologos.length,
+      datos: psicologos
     });
   } catch (error) {
-    return responderError(res, 'Error al obtener los médicos.', error);
+    return responderError(res, 'Error al obtener los psicólogos.', error);
   }
 };
 
 /**
- * Obtiene un médico por su identificador.
- * GET /api/medicos/:id
+ * Obtiene un psicólogo por su identificador.
+ * GET /api/psicologos/:id
  */
-const obtenerMedico = async (req, res) => {
+const obtenerPsicologo = async (req, res) => {
   try {
     if (!esEnteroPositivo(req.params.id)) {
       return responderValidacion(res, [
-        'El identificador del médico debe ser un número entero positivo.'
+        'El identificador del psicólogo debe ser un número entero positivo.'
       ]);
     }
 
-    const medico = await medicoModelo.obtenerPorId(Number(req.params.id));
+    const psicologo = await psicologoModelo.obtenerPorId(Number(req.params.id));
 
-    if (!medico) {
-      return responderNoEncontrado(res, 'Médico no encontrado.');
+    if (!psicologo) {
+      return responderNoEncontrado(res, 'Psicólogo no encontrado.');
     }
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Médico encontrado.',
-      datos: medico
+      mensaje: 'Psicólogo encontrado.',
+      datos: psicologo
     });
   } catch (error) {
-    return responderError(res, 'Error al obtener el médico.', error);
+    return responderError(res, 'Error al obtener el psicólogo.', error);
   }
 };
 
 /**
- * Crea un médico.
- * POST /api/medicos
+ * Crea un psicólogo.
+ * POST /api/psicologos
  */
-const crearMedico = async (req, res) => {
+const crearPsicologo = async (req, res) => {
   try {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return responderValidacion(res, [
@@ -177,7 +182,7 @@ const crearMedico = async (req, res) => {
       ]);
     }
 
-    const { errores, datos } = validarDatosMedico(req.body);
+    const { errores, datos } = validarDatosPsicologo(req.body);
 
     if (errores.length > 0) {
       return responderValidacion(res, errores);
@@ -189,27 +194,27 @@ const crearMedico = async (req, res) => {
       return responderValidacion(res, erroresRelaciones);
     }
 
-    const medico = await medicoModelo.crear(datos);
+    const psicologo = await psicologoModelo.crear(datos);
 
     return res.status(201).json({
       exito: true,
-      mensaje: 'Médico registrado correctamente.',
-      datos: medico
+      mensaje: 'Psicólogo registrado correctamente.',
+      datos: psicologo
     });
   } catch (error) {
-    return responderError(res, 'Error al registrar el médico.', error);
+    return responderError(res, 'Error al registrar el psicólogo.', error);
   }
 };
 
 /**
- * Actualiza un médico.
- * PUT /api/medicos/:id
+ * Actualiza un psicólogo.
+ * PUT /api/psicologos/:id
  */
-const actualizarMedico = async (req, res) => {
+const actualizarPsicologo = async (req, res) => {
   try {
     if (!esEnteroPositivo(req.params.id)) {
       return responderValidacion(res, [
-        'El identificador del médico debe ser un número entero positivo.'
+        'El identificador del psicólogo debe ser un número entero positivo.'
       ]);
     }
 
@@ -219,79 +224,79 @@ const actualizarMedico = async (req, res) => {
       ]);
     }
 
-    const idMedico = Number(req.params.id);
-    const medicoExistente = await medicoModelo.obtenerPorId(idMedico);
+    const idPsicologo = Number(req.params.id);
+    const psicologoExistente = await psicologoModelo.obtenerPorId(idPsicologo);
 
-    if (!medicoExistente) {
-      return responderNoEncontrado(res, 'Médico no encontrado.');
+    if (!psicologoExistente) {
+      return responderNoEncontrado(res, 'Psicólogo no encontrado.');
     }
 
-    const { errores, datos } = validarDatosMedico(req.body);
+    const { errores, datos } = validarDatosPsicologo(req.body);
 
     if (errores.length > 0) {
       return responderValidacion(res, errores);
     }
 
-    const erroresRelaciones = await validarRelacionesYDuplicados(datos, idMedico);
+    const erroresRelaciones = await validarRelacionesYDuplicados(datos, idPsicologo);
 
     if (erroresRelaciones.length > 0) {
       return responderValidacion(res, erroresRelaciones);
     }
 
-    await medicoModelo.actualizar(idMedico, datos);
-    const medicoActualizado = await medicoModelo.obtenerPorId(idMedico);
+    await psicologoModelo.actualizar(idPsicologo, datos);
+    const psicologoActualizado = await psicologoModelo.obtenerPorId(idPsicologo);
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Médico actualizado correctamente.',
-      datos: medicoActualizado
+      mensaje: 'Psicólogo actualizado correctamente.',
+      datos: psicologoActualizado
     });
   } catch (error) {
-    return responderError(res, 'Error al actualizar el médico.', error);
+    return responderError(res, 'Error al actualizar el psicólogo.', error);
   }
 };
 
 /**
- * Elimina un médico.
- * DELETE /api/medicos/:id
+ * Elimina un psicólogo.
+ * DELETE /api/psicologos/:id
  */
-const eliminarMedico = async (req, res) => {
+const eliminarPsicologo = async (req, res) => {
   try {
     if (!esEnteroPositivo(req.params.id)) {
       return responderValidacion(res, [
-        'El identificador del médico debe ser un número entero positivo.'
+        'El identificador del psicólogo debe ser un número entero positivo.'
       ]);
     }
 
-    const idMedico = Number(req.params.id);
-    const medico = await medicoModelo.obtenerPorId(idMedico);
+    const idPsicologo = Number(req.params.id);
+    const psicologo = await psicologoModelo.obtenerPorId(idPsicologo);
 
-    if (!medico) {
-      return responderNoEncontrado(res, 'Médico no encontrado.');
+    if (!psicologo) {
+      return responderNoEncontrado(res, 'Psicólogo no encontrado.');
     }
 
-    await medicoModelo.eliminar(idMedico);
+    await psicologoModelo.eliminar(idPsicologo);
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Médico eliminado correctamente.'
+      mensaje: 'Psicólogo eliminado correctamente.'
     });
   } catch (error) {
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
       return res.status(400).json({
         exito: false,
-        mensaje: 'No se puede eliminar el médico porque tiene citas asociadas.'
+        mensaje: 'No se puede eliminar el psicólogo porque tiene citas asociadas.'
       });
     }
 
-    return responderError(res, 'Error al eliminar el médico.', error);
+    return responderError(res, 'Error al eliminar el psicólogo.', error);
   }
 };
 
 module.exports = {
-  listarMedicos,
-  obtenerMedico,
-  crearMedico,
-  actualizarMedico,
-  eliminarMedico
+  listarPsicologos,
+  obtenerPsicologo,
+  crearPsicologo,
+  actualizarPsicologo,
+  eliminarPsicologo
 };

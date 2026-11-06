@@ -5,7 +5,7 @@
 
 const citaModelo = require('../modelos/citaModelo');
 const pacienteModelo = require('../modelos/pacienteModelo');
-const medicoModelo = require('../modelos/medicoModelo');
+const psicologoModelo = require('../modelos/psicologoModelo');
 const consultorioModelo = require('../modelos/consultorioModelo');
 const {
   esEnteroPositivo,
@@ -22,6 +22,7 @@ const {
 } = require('../utilidades/respuestas');
 
 const ESTADOS_PERMITIDOS = ['Programada', 'Confirmada', 'Atendida', 'Cancelada'];
+const MODALIDADES_PERMITIDAS = ['Presencial', 'Virtual', 'Híbrida'];
 
 /**
  * Valida y normaliza los datos recibidos para una cita.
@@ -35,24 +36,29 @@ const validarDatosCita = (cuerpo = {}) => {
     id_paciente: esEnteroPositivo(cuerpo.id_paciente)
       ? Number(cuerpo.id_paciente)
       : null,
-    id_medico: esEnteroPositivo(cuerpo.id_medico)
-      ? Number(cuerpo.id_medico)
+    id_psicologo: esEnteroPositivo(cuerpo.id_psicologo)
+      ? Number(cuerpo.id_psicologo)
       : null,
     id_consultorio: esEnteroPositivo(cuerpo.id_consultorio)
       ? Number(cuerpo.id_consultorio)
       : null,
     fecha_cita: limpiarTexto(cuerpo.fecha_cita),
     hora_cita: normalizarHora(horaTexto),
+    modalidad: limpiarTexto(cuerpo.modalidad) || 'Presencial',
     motivo: textoOpcional(cuerpo.motivo),
     estado: limpiarTexto(cuerpo.estado) || 'Programada'
   };
 
   if (datos.id_paciente === null) {
-    errores.push('El paciente es obligatorio y su identificador debe ser un número entero positivo.');
+    errores.push(
+      'El paciente es obligatorio y su identificador debe ser un número entero positivo.'
+    );
   }
 
-  if (datos.id_medico === null) {
-    errores.push('El médico es obligatorio y su identificador debe ser un número entero positivo.');
+  if (datos.id_psicologo === null) {
+    errores.push(
+      'El psicólogo es obligatorio y su identificador debe ser un número entero positivo.'
+    );
   }
 
   if (datos.id_consultorio === null) {
@@ -73,6 +79,12 @@ const validarDatosCita = (cuerpo = {}) => {
     );
   }
 
+  if (!MODALIDADES_PERMITIDAS.includes(datos.modalidad)) {
+    errores.push(
+      `La modalidad debe ser una de: ${MODALIDADES_PERMITIDAS.join(', ')}.`
+    );
+  }
+
   if (!ESTADOS_PERMITIDOS.includes(datos.estado)) {
     errores.push(`El estado debe ser uno de: ${ESTADOS_PERMITIDOS.join(', ')}.`);
   }
@@ -85,14 +97,14 @@ const validarDatosCita = (cuerpo = {}) => {
 };
 
 /**
- * Comprueba que el paciente, el médico y el consultorio existan.
+ * Comprueba que el paciente, el psicólogo y el consultorio existan.
  * @param {object} datos Datos normalizados de la cita.
  * @returns {Promise<string[]>} Errores de relación encontrados.
  */
 const validarRelaciones = async (datos) => {
   if (
     datos.id_paciente === null ||
-    datos.id_medico === null ||
+    datos.id_psicologo === null ||
     datos.id_consultorio === null
   ) {
     return [];
@@ -100,9 +112,9 @@ const validarRelaciones = async (datos) => {
 
   const errores = [];
 
-  const [paciente, medico, consultorio] = await Promise.all([
+  const [paciente, psicologo, consultorio] = await Promise.all([
     pacienteModelo.obtenerPorId(datos.id_paciente),
-    medicoModelo.obtenerPorId(datos.id_medico),
+    psicologoModelo.obtenerPorId(datos.id_psicologo),
     consultorioModelo.obtenerPorId(datos.id_consultorio)
   ]);
 
@@ -110,8 +122,8 @@ const validarRelaciones = async (datos) => {
     errores.push('El paciente indicado no existe.');
   }
 
-  if (!medico) {
-    errores.push('El médico indicado no existe.');
+  if (!psicologo) {
+    errores.push('El psicólogo indicado no existe.');
   }
 
   if (!consultorio) {
@@ -123,14 +135,14 @@ const validarRelaciones = async (datos) => {
 
 /**
  * Comprueba si ya existe una cita activa en el mismo horario para el
- * médico o para el paciente.
+ * psicólogo o para el paciente.
  * @param {object} datos Datos normalizados de la cita.
  * @param {number|null} idExcluir Cita que se excluye durante una actualización.
  * @returns {Promise<boolean>} Verdadero si hay conflicto.
  */
 const existeConflictoHorario = async (datos, idExcluir = null) => {
   const conflicto = await citaModelo.buscarConflictoHorario({
-    idMedico: datos.id_medico,
+    idPsicologo: datos.id_psicologo,
     idPaciente: datos.id_paciente,
     fechaCita: datos.fecha_cita,
     horaCita: datos.hora_cita,
@@ -220,34 +232,34 @@ const listarCitasPorPaciente = async (req, res) => {
 };
 
 /**
- * Lista las citas de un médico.
- * GET /api/citas/medico/:idMedico
+ * Lista las citas de un psicólogo.
+ * GET /api/citas/psicologo/:idPsicologo
  */
-const listarCitasPorMedico = async (req, res) => {
+const listarCitasPorPsicologo = async (req, res) => {
   try {
-    if (!esEnteroPositivo(req.params.idMedico)) {
+    if (!esEnteroPositivo(req.params.idPsicologo)) {
       return responderValidacion(res, [
-        'El identificador del médico debe ser un número entero positivo.'
+        'El identificador del psicólogo debe ser un número entero positivo.'
       ]);
     }
 
-    const idMedico = Number(req.params.idMedico);
-    const medico = await medicoModelo.obtenerPorId(idMedico);
+    const idPsicologo = Number(req.params.idPsicologo);
+    const psicologo = await psicologoModelo.obtenerPorId(idPsicologo);
 
-    if (!medico) {
-      return responderNoEncontrado(res, 'Médico no encontrado.');
+    if (!psicologo) {
+      return responderNoEncontrado(res, 'Psicólogo no encontrado.');
     }
 
-    const citas = await citaModelo.listarPorMedico(idMedico);
+    const citas = await citaModelo.listarPorPsicologo(idPsicologo);
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Citas del médico obtenidas correctamente.',
+      mensaje: 'Citas del psicólogo obtenidas correctamente.',
       total: citas.length,
       datos: citas
     });
   } catch (error) {
-    return responderError(res, 'Error al obtener las citas del médico.', error);
+    return responderError(res, 'Error al obtener las citas del psicólogo.', error);
   }
 };
 
@@ -277,7 +289,7 @@ const crearCita = async (req, res) => {
 
     if (await existeConflictoHorario(datos)) {
       return responderValidacion(res, [
-        'Ya existe una cita activa para el médico o el paciente en la fecha y hora indicadas.'
+        'Ya existe una cita activa para el psicólogo o el paciente en la fecha y hora indicadas.'
       ]);
     }
 
@@ -332,7 +344,7 @@ const actualizarCita = async (req, res) => {
 
     if (await existeConflictoHorario(datos, idCita)) {
       return responderValidacion(res, [
-        'Ya existe otra cita activa para el médico o el paciente en la fecha y hora indicadas.'
+        'Ya existe otra cita activa para el psicólogo o el paciente en la fecha y hora indicadas.'
       ]);
     }
 
@@ -391,7 +403,7 @@ module.exports = {
   listarCitas,
   obtenerCita,
   listarCitasPorPaciente,
-  listarCitasPorMedico,
+  listarCitasPorPsicologo,
   crearCita,
   actualizarCita,
   eliminarCita

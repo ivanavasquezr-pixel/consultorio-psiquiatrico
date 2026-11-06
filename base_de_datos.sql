@@ -1,26 +1,31 @@
 -- ============================================================
--- Base de datos para el Consultorio Psiquiátrico
+-- Base de datos para el Consultorio Psicológico
 -- Motor: MySQL 8.x / MariaDB compatible
 -- Codificación: utf8mb4
 --
 -- NOTA PARA RAILWAY:
 -- Si ejecutas este script desde la consola SQL del servicio MySQL
 -- de Railway, puedes crear la base de datos con este mismo script.
--- Luego configura DB_NAME con el nombre creado (consultorio_psiquiatrico)
+-- Luego configura DB_NAME con el nombre creado (consultorio_psicologico)
 -- o cambia las instrucciones CREATE DATABASE y USE por la base de datos
 -- que Railway haya asignado (normalmente "railway").
+--
+-- Si ya tienes una base de datos con la estructura anterior
+-- (consultorio psiquiátrico), ejecuta el script
+-- migracion_consultorio_psicologico.sql en lugar de este.
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS consultorio_psiquiatrico
+CREATE DATABASE IF NOT EXISTS consultorio_psicologico
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE consultorio_psiquiatrico;
+USE consultorio_psicologico;
 
 SET NAMES utf8mb4;
 
 -- ============================================================
 -- Tabla: consultorios
+-- Espacios físicos o virtuales donde se atiende a los pacientes.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS consultorios (
   id_consultorio INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -37,6 +42,8 @@ CREATE TABLE IF NOT EXISTS consultorios (
 
 -- ============================================================
 -- Tabla: pacientes
+-- Personas que reciben atención psicológica.
+-- El campo antecedentes almacena antecedentes psicológicos relevantes.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS pacientes (
   id_paciente INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -57,24 +64,26 @@ CREATE TABLE IF NOT EXISTS pacientes (
   COLLATE = utf8mb4_unicode_ci;
 
 -- ============================================================
--- Tabla: medicos
--- Relación: un consultorio puede tener varios médicos.
+-- Tabla: psicologos
+-- Profesionales de la salud psicológica.
+-- Relación: un consultorio puede tener varios psicólogos.
 -- ============================================================
-CREATE TABLE IF NOT EXISTS medicos (
-  id_medico INT UNSIGNED NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS psicologos (
+  id_psicologo INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nombre VARCHAR(100) NOT NULL,
   apellido VARCHAR(100) NOT NULL,
   especialidad VARCHAR(100) NOT NULL,
   cedula_profesional VARCHAR(50) NOT NULL,
   telefono VARCHAR(20) NULL,
   correo VARCHAR(120) NOT NULL,
+  enfoque_terapeutico VARCHAR(100) NULL,
   id_consultorio INT UNSIGNED NULL,
   fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id_medico),
-  UNIQUE KEY uq_medicos_cedula (cedula_profesional),
-  UNIQUE KEY uq_medicos_correo (correo),
-  KEY idx_medicos_consultorio (id_consultorio),
-  CONSTRAINT fk_medicos_consultorio
+  PRIMARY KEY (id_psicologo),
+  UNIQUE KEY uq_psicologos_cedula (cedula_profesional),
+  UNIQUE KEY uq_psicologos_correo (correo),
+  KEY idx_psicologos_consultorio (id_consultorio),
+  CONSTRAINT fk_psicologos_consultorio
     FOREIGN KEY (id_consultorio)
     REFERENCES consultorios (id_consultorio)
     ON DELETE RESTRICT
@@ -85,15 +94,18 @@ CREATE TABLE IF NOT EXISTS medicos (
 
 -- ============================================================
 -- Tabla: citas
--- Relaciona pacientes, médicos y consultorios.
+-- Relaciona pacientes, psicólogos y consultorios.
+-- La modalidad permite distinguir atención presencial o virtual.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS citas (
   id_cita INT UNSIGNED NOT NULL AUTO_INCREMENT,
   id_paciente INT UNSIGNED NOT NULL,
-  id_medico INT UNSIGNED NOT NULL,
+  id_psicologo INT UNSIGNED NOT NULL,
   id_consultorio INT UNSIGNED NOT NULL,
   fecha_cita DATE NOT NULL,
   hora_cita TIME NOT NULL,
+  modalidad ENUM('Presencial', 'Virtual', 'Híbrida')
+    NOT NULL DEFAULT 'Presencial',
   motivo VARCHAR(255) NULL,
   estado ENUM('Programada', 'Confirmada', 'Atendida', 'Cancelada')
     NOT NULL DEFAULT 'Programada',
@@ -101,7 +113,7 @@ CREATE TABLE IF NOT EXISTS citas (
   PRIMARY KEY (id_cita),
   KEY idx_citas_fecha_hora (fecha_cita, hora_cita),
   KEY idx_citas_paciente (id_paciente),
-  KEY idx_citas_medico (id_medico),
+  KEY idx_citas_psicologo (id_psicologo),
   KEY idx_citas_consultorio (id_consultorio),
   KEY idx_citas_estado (estado),
   CONSTRAINT fk_citas_paciente
@@ -109,9 +121,9 @@ CREATE TABLE IF NOT EXISTS citas (
     REFERENCES pacientes (id_paciente)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
-  CONSTRAINT fk_citas_medico
-    FOREIGN KEY (id_medico)
-    REFERENCES medicos (id_medico)
+  CONSTRAINT fk_citas_psicologo
+    FOREIGN KEY (id_psicologo)
+    REFERENCES psicologos (id_psicologo)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
   CONSTRAINT fk_citas_consultorio
@@ -125,6 +137,7 @@ CREATE TABLE IF NOT EXISTS citas (
 
 -- ============================================================
 -- Tabla: historial_clinico
+-- Registro de la evolución psicológica del paciente.
 -- Relación: cada cita puede tener un único registro clínico.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS historial_clinico (

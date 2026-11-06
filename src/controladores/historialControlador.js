@@ -1,6 +1,6 @@
 /**
- * Controlador del historial clínico: validación de datos, verificación
- * de la cita relacionada y respuestas HTTP.
+ * Controlador del historial clínico psicológico: validación de datos,
+ * verificación de la cita relacionada y respuestas HTTP.
  */
 
 const historialModelo = require('../modelos/historialModelo');
@@ -37,7 +37,7 @@ const validarDatosHistorial = (cuerpo = {}) => {
   }
 
   if (!datos.diagnostico) {
-    errores.push('El diagnóstico es obligatorio.');
+    errores.push('El diagnóstico psicológico es obligatorio.');
   }
 
   return { errores, datos };
@@ -71,7 +71,7 @@ const validarRelacionConCita = async (datos, idExcluir = null) => {
 };
 
 /**
- * Lista todos los registros del historial clínico.
+ * Lista todos los registros del historial clínico psicológico.
  * GET /api/historial
  */
 const listarHistoriales = async (req, res) => {
@@ -80,12 +80,12 @@ const listarHistoriales = async (req, res) => {
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Historial clínico obtenido correctamente.',
+      mensaje: 'Historial clínico psicológico obtenido correctamente.',
       total: historiales.length,
       datos: historiales
     });
   } catch (error) {
-    return responderError(res, 'Error al obtener el historial clínico.', error);
+    return responderError(res, 'Error al obtener el historial clínico psicológico.', error);
   }
 };
 
@@ -187,7 +187,7 @@ const crearHistorial = async (req, res) => {
 
     return res.status(201).json({
       exito: true,
-      mensaje: 'Registro del historial clínico creado correctamente.',
+      mensaje: 'Registro del historial clínico psicológico creado correctamente.',
       datos: historial
     });
   } catch (error) {
@@ -241,7 +241,7 @@ const actualizarHistorial = async (req, res) => {
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Registro del historial clínico actualizado correctamente.',
+      mensaje: 'Registro del historial clínico psicológico actualizado correctamente.',
       datos: historialActualizado
     });
   } catch (error) {
@@ -276,7 +276,7 @@ const eliminarHistorial = async (req, res) => {
 
     return res.status(200).json({
       exito: true,
-      mensaje: 'Registro del historial clínico eliminado correctamente.'
+      mensaje: 'Registro del historial clínico psicológico eliminado correctamente.'
     });
   } catch (error) {
     return responderError(
