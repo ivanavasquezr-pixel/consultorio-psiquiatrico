@@ -172,7 +172,9 @@ consultorio/
 
 6. Si ya tienes una base de datos con la estructura anterior (tabla `medicos`), ejecuta `migracion_consultorio_psicologico.sql` en lugar del script completo. La migración renombra la tabla y las columnas, agrega los campos nuevos y **no elimina información**.
 
-7. Inicia el servidor en modo desarrollo:
+7. Opcional: carga tres psicólogos de prueba con `datos_prueba_psicologos.sql`. El script es idempotente y sirve para comprobar que `GET /api/psicologos` devuelve datos en el plugin de WordPress. En la pestaña **Query** de Railway, selecciona primero la base (`USE railway;` o `USE consultorio_psicologico;`) y pega el contenido del archivo.
+
+8. Inicia el servidor en modo desarrollo:
 
    ```bash
    npm run dev
@@ -184,7 +186,7 @@ consultorio/
    npm start
    ```
 
-8. Verifica el servicio:
+9. Verifica el servicio:
 
    ```bash
    curl http://localhost:3000/api/salud
