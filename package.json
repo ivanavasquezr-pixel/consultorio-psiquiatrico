@@ -1,0 +1,34 @@
+{
+  "name": "api-consultorio-psiquiatrico",
+  "version": "1.0.0",
+  "description": "API REST para la gestión de un consultorio psiquiátrico desarrollada con Node.js, Express y MySQL bajo el patrón MVC.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "verificar": "node --check src/index.js"
+  },
+  "keywords": [
+    "consultorio",
+    "psiquiatria",
+    "api",
+    "rest",
+    "express",
+    "mysql",
+    "mvc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.14.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

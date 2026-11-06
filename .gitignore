@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno y credenciales
+.env
+.env.local
+.env.production
+
+# Registros
+logs/
+*.log
+npm-debug.log*
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Cobertura de pruebas
+coverage/
