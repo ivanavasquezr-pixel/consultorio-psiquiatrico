@@ -248,9 +248,21 @@ consultorio/
 La conexión se construye en este orden:
 
 1. Variables `DB_*`.
-2. Variables `MYSQL*` de Railway (`MYSQLHOST`, `MYSQLPORT`, etc.).
-3. URL completa en `MYSQL_URL` o `DATABASE_URL`.
+2. URL completa en `DB_URL`, `MYSQL_PUBLIC_URL`, `MYSQL_URL` o `DATABASE_URL`.
+3. Variables `MYSQL*` de Railway (`MYSQLHOST`, `MYSQLPORT`, etc.).
 4. Configuración local predeterminada (`localhost`, usuario `root`, base de datos `consultorio_psicologico`).
+
+Los valores se limpian automáticamente (espacios, saltos de línea y comillas) para evitar errores al copiarlos desde los paneles de Render o Railway.
+
+Si el host configurado es interno de Railway (`*.railway.internal`) y existen las variables `RAILWAY_TCP_PROXY_DOMAIN` y `RAILWAY_TCP_PROXY_PORT`, la API usa automáticamente el host y puerto públicos del TCP Proxy. Aun así, la forma recomendada en Render es configurar directamente `DB_HOST` y `DB_PORT` con los valores públicos.
+
+Para comprobar la conexión sin arrancar el servidor:
+
+```bash
+npm run verificar:conexion
+```
+
+Este comando muestra el host, puerto, base de datos, SSL y origen de la configuración (sin exponer la contraseña) e indica el diagnóstico si falla.
 
 ---
 
@@ -274,6 +286,8 @@ La conexión se construye en este orden:
 | `MYSQLUSER` | No | — | Alternativa Railway para el usuario |
 | `MYSQLPASSWORD` | No | — | Alternativa Railway para la contraseña |
 | `MYSQLDATABASE` | No | — | Alternativa Railway para la base de datos |
+| `DB_URL` | No | — | URL completa de conexión (`mysql://usuario:contraseña@host:puerto/base`) |
+| `MYSQL_PUBLIC_URL` | No | — | URL pública de Railway; se admite como alternativa |
 | `MYSQL_URL` / `DATABASE_URL` | No | — | URL completa de conexión (`mysql://usuario:contraseña@host:puerto/base`) |
 
 > **Importante:** el archivo `.env` contiene credenciales y está incluido en `.gitignore`. Nunca lo subas a un repositorio público. Usa `.env.example` como plantilla.
@@ -549,9 +563,9 @@ Devuelve información básica de la API.
 
 #### `GET /api/salud`
 
-Verifica el estado del servicio y de la conexión a MySQL.
+Verifica el estado del servicio y de la conexión a MySQL. Incluye la configuración detectada (sin contraseña) para facilitar el diagnóstico en producción.
 
-**Respuesta `200`:**
+**Respuesta `200` con conexión:**
 
 ```json
 {
@@ -561,12 +575,45 @@ Verifica el estado del servicio y de la conexión a MySQL.
     "servicio": "API Consultorio Psicológico",
     "estado": "activo",
     "baseDatos": "conectada",
+    "conexion": {
+      "host": "junction.proxy.rlwy.net",
+      "puerto": 26123,
+      "baseDatos": "railway",
+      "ssl": false,
+      "origenConfiguracion": "DB_*"
+    },
     "fecha": "2026-11-06T14:30:00.000Z"
   }
 }
 ```
 
-Si no hay conexión a la base de datos, `baseDatos` será `"desconectada"`, pero el endpoint seguirá respondiendo `200` para permitir el diagnóstico.
+**Respuesta `200` sin conexión:**
+
+```json
+{
+  "exito": true,
+  "mensaje": "Servicio activo.",
+  "datos": {
+    "servicio": "API Consultorio Psicológico",
+    "estado": "activo",
+    "baseDatos": "desconectada",
+    "conexion": {
+      "host": "mysql.railway.internal",
+      "puerto": 3306,
+      "baseDatos": "railway",
+      "ssl": false,
+      "origenConfiguracion": "MYSQL*"
+    },
+    "diagnostico": {
+      "codigo": "ENOTFOUND",
+      "descripcion": "No se pudo resolver el host. Revisa que DB_HOST no sea un dominio interno *.railway.internal y que no tenga espacios."
+    },
+    "fecha": "2026-11-06T14:30:00.000Z"
+  }
+}
+```
+
+Si no hay conexión a la base de datos, `baseDatos` será `"desconectada"`, pero el endpoint seguirá respondiendo `200` para permitir el diagnóstico. El campo `diagnostico` solo aparece en ese caso.
 
 ---
 
@@ -1197,8 +1244,9 @@ Todas las consultas de los modelos usan marcadores `?` y arreglos de parámetros
 
 ### El servidor inicia pero las consultas fallan
 
-- Consulta `GET /api/salud`. Si `baseDatos` es `"desconectada"`, revisa las credenciales y la conectividad.
-- Revisa los mensajes de error de la consola.
+- Consulta `GET /api/salud`. Si `baseDatos` es `"desconectada"`, revisa el campo `diagnostico` y la sección `conexion` para conocer el host, puerto, base de datos y origen de la configuración.
+- Ejecuta `npm run verificar:conexion` para obtener el mismo diagnóstico desde la consola del servicio.
+- Revisa los mensajes de error de la consola al iniciar.
 
 ---
 
@@ -1221,6 +1269,33 @@ Todas las consultas de los modelos usan marcadores `?` y arreglos de parámetros
 
 6. Ejecuta el script `base_de_datos.sql` en la base de datos de producción antes de iniciar la API. Si la base ya existía con el esquema anterior, ejecuta `migracion_consultorio_psicologico.sql`.
 7. Verifica el despliegue consultando `GET /api/salud`.
+
+### Variables de entorno para conectar Render con MySQL de Railway
+
+El host interno de Railway (`*.railway.internal`) **no funciona desde Render**, porque solo es accesible entre servicios dentro de Railway. Debes usar el **TCP Proxy** público.
+
+En Railway: abre el servicio **MySQL** → **Settings > Networking** → habilita **TCP Proxy**. Anota el host y el puerto públicos que aparecen en **Connect** (por ejemplo, `junction.proxy.rlwy.net` y `26123`).
+
+En Render: abre el servicio de la API → **Environment** y define:
+
+```env
+DB_HOST=junction.proxy.rlwy.net
+DB_PORT=26123
+DB_USER=root
+DB_PASSWORD=<MYSQLPASSWORD de Railway>
+DB_NAME=railway
+DB_SSL=false
+NODE_ENV=production
+```
+
+> **Importante:**
+> - `DB_HOST` y `DB_PORT` deben ser los públicos del **TCP Proxy**, no `mysql.railway.internal` ni el puerto `3306`.
+> - La contraseña es el valor de `MYSQLPASSWORD` del servicio MySQL de Railway (no `MYSQL_ROOT_PASSWORD`).
+> - `DB_NAME` puede ser `railway` (base creada por Railway) o `consultorio_psicologico` (si ejecutaste `base_de_datos.sql` completo). Ambas bases pueden coexistir con el esquema psicológico.
+> - `DB_SSL=false` para el TCP Proxy de Railway. Si tu proveedor exige cifrado, usa `DB_SSL=true`.
+> - No agregues comillas alrededor de los valores en Render: la API las limpia, pero es mejor evitarlas.
+> - Después de guardar las variables, Render redepliega automáticamente. Espera a que termine y consulta `GET /api/salud`.
+> - Puedes comprobar la conexión desde la pestaña **Shell** de Render con `npm run verificar:conexion`.
 
 ### Redespliegue automático
 

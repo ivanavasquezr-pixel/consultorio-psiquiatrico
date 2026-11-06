@@ -7,7 +7,13 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { grupoConexiones, verificarConexion, cerrarConexion } = require('./configuracion/conexion');
+const {
+  verificarConexion,
+  comprobarConexion,
+  describirErrorConexion,
+  cerrarConexion,
+  resumenConexion
+} = require('./configuracion/conexion');
 
 const pacienteRutas = require('./rutas/pacienteRutas');
 const psicologoRutas = require('./rutas/psicologoRutas');
@@ -44,7 +50,7 @@ app.get('/', (req, res) => {
   return res.status(200).json({
     exito: true,
     mensaje: 'API REST del Consultorio Psicológico.',
-    version: '2.0.0',
+    version: '2.0.1',
     documentacion: 'Consulta el archivo README.md para ver todos los endpoints.',
     estado: 'Servicio activo.'
   });
@@ -55,13 +61,7 @@ app.get('/', (req, res) => {
  * GET /api/salud
  */
 app.get('/api/salud', async (req, res) => {
-  let estadoBaseDatos = 'conectada';
-
-  try {
-    await grupoConexiones.query('SELECT 1');
-  } catch (error) {
-    estadoBaseDatos = 'desconectada';
-  }
+  const estadoConexion = await comprobarConexion();
 
   return res.status(200).json({
     exito: true,
@@ -69,7 +69,22 @@ app.get('/api/salud', async (req, res) => {
     datos: {
       servicio: 'API Consultorio Psicológico',
       estado: 'activo',
-      baseDatos: estadoBaseDatos,
+      baseDatos: estadoConexion.conectada ? 'conectada' : 'desconectada',
+      conexion: {
+        host: resumenConexion.host,
+        puerto: resumenConexion.puerto,
+        baseDatos: resumenConexion.baseDatos,
+        ssl: resumenConexion.ssl,
+        origenConfiguracion: resumenConexion.origen
+      },
+      ...(estadoConexion.conectada
+        ? {}
+        : {
+            diagnostico: {
+              codigo: estadoConexion.codigo,
+              descripcion: estadoConexion.descripcion
+            }
+          }),
       fecha: new Date().toISOString()
     }
   });
@@ -133,11 +148,19 @@ const iniciarServidor = async () => {
   try {
     await verificarConexion();
   } catch (error) {
+    const diagnostico = describirErrorConexion(error);
+
+    console.error(`No se pudo conectar a MySQL al iniciar [${diagnostico.codigo}]: ${diagnostico.descripcion}`);
     console.error(
-      `No se pudo conectar a MySQL al iniciar: ${error.message}`
+      `Destino configurado: ${resumenConexion.host}:${resumenConexion.puerto}/${resumenConexion.baseDatos} ` +
+        `(origen: ${resumenConexion.origen}, SSL: ${resumenConexion.ssl ? 'activo' : 'inactivo'}).`
     );
     console.warn(
-      'El servidor se iniciará de todos modos, pero las operaciones que requieran la base de datos fallarán hasta que se corrijan las credenciales.'
+      'Revisa las variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME y DB_SSL en Render. ' +
+        'Para Railway debes usar el host y el puerto públicos del TCP Proxy, no el dominio *.railway.internal.'
+    );
+    console.warn(
+      'El servidor se iniciará de todos modos; consulta GET /api/salud para ver el diagnóstico.'
     );
   }
 
