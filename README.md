@@ -6,6 +6,8 @@ Toda la estructura del proyecto, los nombres de archivos, las variables, los com
 
 > En una API REST la "vista" es la respuesta JSON que consume el cliente. Por ello no existen plantillas HTML: los modelos contienen el acceso a datos, los controladores contienen la lógica de negocio y las rutas exponen los endpoints.
 
+> **Informe técnico completo:** consulta [`INFORME_TECNICO.md`](./INFORME_TECNICO.md) para los enlaces de producción, la documentación de todos los endpoints lista para Postman, los datos de prueba y la integración con WordPress/WPGetAPI.
+
 ---
 
 ## Tabla de contenido
@@ -27,6 +29,7 @@ Toda la estructura del proyecto, los nombres de archivos, las variables, los com
 15. [Reglas de negocio y validaciones](#reglas-de-negocio-y-validaciones)
 16. [Solución de problemas](#solución-de-problemas)
 17. [Despliegue en producción](#despliegue-en-producción)
+18. [Informe técnico](./INFORME_TECNICO.md)
 
 ---
 
