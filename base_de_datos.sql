@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS pacientes (
   id_paciente INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nombre VARCHAR(100) NOT NULL,
   apellido VARCHAR(100) NOT NULL,
+  documento_identidad VARCHAR(30) NULL,
   fecha_nacimiento DATE NOT NULL,
   sexo ENUM('Masculino', 'Femenino', 'Otro') NOT NULL,
   telefono VARCHAR(20) NULL,
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS pacientes (
   antecedentes TEXT NULL,
   fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id_paciente),
+  UNIQUE KEY uq_pacientes_documento (documento_identidad),
   KEY idx_pacientes_apellido_nombre (apellido, nombre),
   KEY idx_pacientes_correo (correo)
 ) ENGINE = InnoDB

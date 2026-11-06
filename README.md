@@ -172,7 +172,15 @@ consultorio/
 
 6. Si ya tienes una base de datos con la estructura anterior (tabla `medicos`), ejecuta `migracion_consultorio_psicologico.sql` en lugar del script completo. La migración renombra la tabla y las columnas, agrega los campos nuevos y **no elimina información**.
 
-7. Opcional: carga tres psicólogos de prueba con `datos_prueba_psicologos.sql`. El script es idempotente y sirve para comprobar que `GET /api/psicologos` devuelve datos en el plugin de WordPress. En la pestaña **Query** de Railway, selecciona primero la base (`USE railway;` o `USE consultorio_psicologico;`) y pega el contenido del archivo.
+7. Opcional: carga datos de prueba realistas para las cinco entidades con:
+
+   ```bash
+   npm run sembrar:prueba
+   ```
+
+   El seeder es idempotente: crea 3 consultorios, 3 psicólogos, 3 pacientes, 3 citas y 3 registros de historial clínico, respetando las llaves foráneas. Si la base es anterior, agrega automáticamente la columna `pacientes.documento_identidad`.
+
+   También puedes usar `datos_prueba_psicologos.sql` si solo necesitas los tres psicólogos. En la pestaña **Query** de Railway, selecciona primero la base (`USE railway;` o `USE consultorio_psicologico;`) y pega el contenido del archivo.
 
 8. Inicia el servidor en modo desarrollo:
 
@@ -318,6 +326,7 @@ El script `base_de_datos.sql` crea las siguientes tablas:
 | `id_paciente` | INT UNSIGNED | PK, AUTO_INCREMENT |
 | `nombre` | VARCHAR(100) | NOT NULL |
 | `apellido` | VARCHAR(100) | NOT NULL |
+| `documento_identidad` | VARCHAR(30) | NULL, UNIQUE |
 | `fecha_nacimiento` | DATE | NOT NULL |
 | `sexo` | ENUM | `Masculino`, `Femenino`, `Otro` |
 | `telefono` | VARCHAR(20) | NULL |
@@ -637,6 +646,7 @@ Lista todos los pacientes ordenados por apellido y nombre.
       "id_paciente": 1,
       "nombre": "Ana",
       "apellido": "Martínez",
+      "documento_identidad": "LOPM900312MDFPRR08",
       "fecha_nacimiento": "1990-04-15",
       "sexo": "Femenino",
       "telefono": "+52 555 123 4567",
@@ -667,6 +677,7 @@ Crea un paciente.
 {
   "nombre": "Ana",
   "apellido": "Martínez",
+  "documento_identidad": "LOPM900312MDFPRR08",
   "fecha_nacimiento": "1990-04-15",
   "sexo": "Femenino",
   "telefono": "+52 555 123 4567",
@@ -682,6 +693,7 @@ Crea un paciente.
 | --- | --- | --- |
 | `nombre` | Sí | Máximo 100 caracteres |
 | `apellido` | Sí | Máximo 100 caracteres |
+| `documento_identidad` | No | Documento de identidad único, máximo 30 caracteres |
 | `fecha_nacimiento` | Sí | Formato `AAAA-MM-DD`, no puede ser futura |
 | `sexo` | Sí | `Masculino`, `Femenino` u `Otro` |
 | `telefono` | No | Entre 7 y 20 caracteres |
@@ -1076,6 +1088,7 @@ curl -X POST http://localhost:3000/api/pacientes \
   -d '{
     "nombre": "Ana",
     "apellido": "Martínez",
+    "documento_identidad": "LOPM900312MDFPRR08",
     "fecha_nacimiento": "1990-04-15",
     "sexo": "Femenino",
     "telefono": "+52 555 123 4567",

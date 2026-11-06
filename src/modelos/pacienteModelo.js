@@ -9,6 +9,7 @@ const CAMPOS = `
   id_paciente,
   nombre,
   apellido,
+  documento_identidad,
   fecha_nacimiento,
   sexo,
   telefono,
@@ -45,6 +46,31 @@ const obtenerPorId = async (idPaciente) => {
 };
 
 /**
+ * Busca un paciente por su documento de identidad.
+ * @param {string} documento Documento de identidad.
+ * @param {number|null} idExcluir Identificador que se debe excluir al actualizar.
+ * @returns {Promise<object|null>} Coincidencia encontrada o null.
+ */
+const buscarPorDocumento = async (documento, idExcluir = null) => {
+  let sql = `
+    SELECT id_paciente, documento_identidad
+    FROM pacientes
+    WHERE documento_identidad = ?
+  `;
+  const parametros = [documento];
+
+  if (idExcluir !== null) {
+    sql += ' AND id_paciente <> ?';
+    parametros.push(idExcluir);
+  }
+
+  sql += ' LIMIT 1';
+
+  const [filas] = await grupoConexiones.execute(sql, parametros);
+  return filas[0] || null;
+};
+
+/**
  * Registra un nuevo paciente.
  * @param {object} datos Datos previamente validados por el controlador.
  * @returns {Promise<object>} Paciente creado.
@@ -52,11 +78,12 @@ const obtenerPorId = async (idPaciente) => {
 const crear = async (datos) => {
   const [resultado] = await grupoConexiones.execute(
     `INSERT INTO pacientes
-      (nombre, apellido, fecha_nacimiento, sexo, telefono, correo, direccion, antecedentes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (nombre, apellido, documento_identidad, fecha_nacimiento, sexo, telefono, correo, direccion, antecedentes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       datos.nombre,
       datos.apellido,
+      datos.documento_identidad,
       datos.fecha_nacimiento,
       datos.sexo,
       datos.telefono,
@@ -80,6 +107,7 @@ const actualizar = async (idPaciente, datos) => {
     `UPDATE pacientes
      SET nombre = ?,
          apellido = ?,
+         documento_identidad = ?,
          fecha_nacimiento = ?,
          sexo = ?,
          telefono = ?,
@@ -90,6 +118,7 @@ const actualizar = async (idPaciente, datos) => {
     [
       datos.nombre,
       datos.apellido,
+      datos.documento_identidad,
       datos.fecha_nacimiento,
       datos.sexo,
       datos.telefono,
@@ -120,6 +149,7 @@ const eliminar = async (idPaciente) => {
 module.exports = {
   listarTodos,
   obtenerPorId,
+  buscarPorDocumento,
   crear,
   actualizar,
   eliminar

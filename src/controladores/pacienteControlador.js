@@ -30,6 +30,7 @@ const validarDatosPaciente = (cuerpo = {}) => {
   const datos = {
     nombre: limpiarTexto(cuerpo.nombre),
     apellido: limpiarTexto(cuerpo.apellido),
+    documento_identidad: textoOpcional(cuerpo.documento_identidad),
     fecha_nacimiento: limpiarTexto(cuerpo.fecha_nacimiento),
     sexo: limpiarTexto(cuerpo.sexo),
     telefono: textoOpcional(cuerpo.telefono),
@@ -48,6 +49,10 @@ const validarDatosPaciente = (cuerpo = {}) => {
     errores.push('El apellido es obligatorio.');
   } else if (datos.apellido.length > 100) {
     errores.push('El apellido no puede superar los 100 caracteres.');
+  }
+
+  if (datos.documento_identidad && datos.documento_identidad.length > 30) {
+    errores.push('El documento de identidad no puede superar los 30 caracteres.');
   }
 
   if (!esFechaValida(datos.fecha_nacimiento)) {
@@ -81,6 +86,24 @@ const validarDatosPaciente = (cuerpo = {}) => {
   }
 
   return { errores, datos };
+};
+
+/**
+ * Comprueba que el documento de identidad no esté registrado por otro paciente.
+ * @param {string|null} documento Documento de identidad.
+ * @param {number|null} idExcluir Paciente que se excluye durante una actualización.
+ * @returns {Promise<string[]>} Errores encontrados.
+ */
+const validarDocumentoUnico = async (documento, idExcluir = null) => {
+  if (!documento) {
+    return [];
+  }
+
+  const existente = await pacienteModelo.buscarPorDocumento(documento, idExcluir);
+
+  return existente
+    ? ['El documento de identidad ya está registrado para otro paciente.']
+    : [];
 };
 
 /**
@@ -148,6 +171,12 @@ const crearPaciente = async (req, res) => {
       return responderValidacion(res, errores);
     }
 
+    const erroresDocumento = await validarDocumentoUnico(datos.documento_identidad);
+
+    if (erroresDocumento.length > 0) {
+      return responderValidacion(res, erroresDocumento);
+    }
+
     const paciente = await pacienteModelo.crear(datos);
 
     return res.status(201).json({
@@ -189,6 +218,15 @@ const actualizarPaciente = async (req, res) => {
 
     if (errores.length > 0) {
       return responderValidacion(res, errores);
+    }
+
+    const erroresDocumento = await validarDocumentoUnico(
+      datos.documento_identidad,
+      idPaciente
+    );
+
+    if (erroresDocumento.length > 0) {
+      return responderValidacion(res, erroresDocumento);
     }
 
     await pacienteModelo.actualizar(idPaciente, datos);
